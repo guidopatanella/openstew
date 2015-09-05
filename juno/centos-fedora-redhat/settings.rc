@@ -1,0 +1,37 @@
+
+# ==============================================================================
+# CREDENTIALS: The following passwords can be modified.
+# ==============================================================================
+
+MYSQL_ROOT=mysqlopenstack
+RABBIT_PASS=rabbitpass
+KEYSTONE_DBPASS=keydbpass
+DEMO_PASS=demopass
+ADMIN_PASS=adminpass
+GLANCE_DBPASS=glancedbpass
+GLANCE_PASS=glancepass
+NOVA_DBPASS=novadbpass
+NOVA_PASS=novapass
+DASH_DBPASS=dashdbpass
+CINDER_DBPASS=cinderdbpass
+CINDER_PASS=cinderpass
+NEUTRON_DBPASS=neutrondbpass
+NEUTRON_PASS=neutronpass
+HEAT_DBPASS=heatdbpass
+HEAT_PASS=heatpass
+CEILOMETER_DBPASS=ceilometerdbpass
+CEILOMETER_PASS=ceilometerpass
+TROVE_DBPASS=trovedbpass
+TROVE_PASS=trovepass
+KEYSTONE_ADMIN_TOKEN=whateveryoulike
+
+# ==============================================================================
+# Network related: these settings may be modified
+# ==============================================================================
+NETWORK_NAME=demo-net
+NETWORK_BRIDGE_ID=br100
+NETWORK_FIXED_RANGE_CIDR=203.0.113.24/29
+
+
+export OS_SERVICE_TOKEN=${KEYSTONE_ADMIN_TOKEN}
+export OS_SERVICE_ENDPOINT=http://controller:35357/v2.0
