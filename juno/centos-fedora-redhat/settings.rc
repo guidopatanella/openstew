@@ -4,6 +4,7 @@
 # ==============================================================================
 
 MYSQL_ROOT=mysqlopenstack
+RABBIT_USER=guest
 RABBIT_PASS=rabbitpass
 KEYSTONE_DBPASS=keydbpass
 DEMO_PASS=demopass

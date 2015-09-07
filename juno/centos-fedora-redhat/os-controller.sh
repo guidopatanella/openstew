@@ -17,7 +17,7 @@ mysql -u root -p${MYSQL_ROOT} -A -e "source ./schemas.sql;"
 yum install -y rabbitmq-server
 systemctl enable rabbitmq-server.service
 systemctl start rabbitmq-server.service
-rabbitmqctl change_password guest ${RABBIT_PASS}
+rabbitmqctl change_password ${RABBIT_USER} ${RABBIT_PASS}
 systemctl restart rabbitmq-server.service
 
 # ==============================================================================
@@ -26,16 +26,24 @@ systemctl restart rabbitmq-server.service
 
 yum install -y openstack-keystone python-keystoneclient
 # update configuration
-mv /etc/keystone/keystone.conf /etc/keystone/keystone.conf.original
-echo "[DEFAULT]" > /etc/keystone/keystone.conf
-echo "admin_token = ${KEYSTONE_ADMIN_TOKEN}" >> /etc/keystone/keystone.conf
-echo "[database]" >> /etc/keystone/keystone.conf
-echo "connection = mysql://keystone:${KEYSTONE_DBPASS}@controller/keystone" >> /etc/keystone/keystone.conf
-echo "[token]" >> /etc/keystone/keystone.conf
-echo "provider = keystone.token.providers.uuid.Provider" >> /etc/keystone/keystone.conf
-echo "driver = keystone.token.persistence.backends.sql.Token" >> /etc/keystone/keystone.conf
-echo "[revoke]" >> /etc/keystone/keystone.conf
-echo "driver = keystone.contrib.revoke.backends.sql.Revoke" >> /etc/keystone/keystone.conf
+CONFIG_FILE=/etc/keystone/keystone.conf
+mv ${CONFIG_FILE} ${CONFIG_FILE}.original
+echo "[DEFAULT]" > ${CONFIG_FILE}
+echo "public_bind_host=0.0.0.0" >> ${CONFIG_FILE}
+echo "public_port=5000" >> ${CONFIG_FILE}
+echo "admin_bind_host=0.0.0.0" >> ${CONFIG_FILE}
+echo "admin_port=35357" >> ${CONFIG_FILE}
+echo "admin_token = ${KEYSTONE_ADMIN_TOKEN}" >> ${CONFIG_FILE}
+echo "rpc_backend = rabbit" >> ${CONFIG_FILE}
+echo "rabbit_userid=${RABBIT_USER}" >> ${CONFIG_FILE}
+echo "rabbit_password=${RABBIT_PASS}" >> ${CONFIG_FILE}
+echo "[database]" >> ${CONFIG_FILE}
+echo "connection = mysql://keystone:${KEYSTONE_DBPASS}@controller/keystone" >> ${CONFIG_FILE}
+echo "[token]" >> ${CONFIG_FILE}
+echo "provider = keystone.token.providers.uuid.Provider" >> ${CONFIG_FILE}
+echo "driver = keystone.token.persistence.backends.sql.Token" >> ${CONFIG_FILE}
+echo "[revoke]" >> ${CONFIG_FILE}
+echo "driver = keystone.contrib.revoke.backends.sql.Revoke" >> ${CONFIG_FILE}
 
 keystone-manage pki_setup --keystone-user keystone --keystone-group keystone
 chown -R keystone:keystone /var/log/keystone
@@ -102,36 +110,50 @@ keystone endpoint-create \
 yum install -y openstack-glance python-glanceclient
 
 # update configuration
-mv /etc/glance/glance-api.conf /etc/glance/glance-api.conf.original
-mv /etc/glance/glance-registry.conf /etc/glance/glance-registry.conf.original
-echo "[DEFAULT]" > /etc/glance/glance-api.conf
-echo "notification_driver = noop" >> /etc/glance/glance-api.conf
-echo "[database]" >> /etc/glance/glance-api.conf
-echo "connection = mysql://glance:${GLANCE_DBPASS}@controller/glance" >> /etc/glance/glance-api.conf
-echo "[keystone_authtoken]" >> /etc/glance/glance-api.conf
-echo "auth_uri = http://controller:5000/v2.0" >> /etc/glance/glance-api.conf
-echo "identity_uri = http://controller:35357" >> /etc/glance/glance-api.conf
-echo "admin_tenant_name = service" >> /etc/glance/glance-api.conf
-echo "admin_user = glance" >> /etc/glance/glance-api.conf
-echo "admin_password = ${GLANCE_PASS}" >> /etc/glance/glance-api.conf
-echo "[paste_deploy]" >> /etc/glance/glance-api.conf
-echo "flavor = keystone" >> /etc/glance/glance-api.conf
-echo "[glance_store]" >> /etc/glance/glance-api.conf
-echo "default_store = file" >> /etc/glance/glance-api.conf
-echo "filesystem_store_datadir = /var/lib/glance/images/" >> /etc/glance/glance-api.conf
+CONFIG_FILE=/etc/glance/glance-api.conf
+mv ${CONFIG_FILE} ${CONFIG_FILE}.original
+echo "[DEFAULT]" > ${CONFIG_FILE}
+echo "bind_host=0.0.0.0" >> ${CONFIG_FILE}
+echo "bind_port=9292" >> ${CONFIG_FILE}
+echo "registry_host=0.0.0.0" >> ${CONFIG_FILE}
+echo "registry_port=9191" >> ${CONFIG_FILE}
+echo "rpc_backend = rabbit" >> ${CONFIG_FILE}
+echo "rabbit_userid=${RABBIT_USER}" >> ${CONFIG_FILE}
+echo "rabbit_password=${RABBIT_PASS}" >> ${CONFIG_FILE}
+echo "notification_driver = noop" >> ${CONFIG_FILE}
+echo "[database]" >> ${CONFIG_FILE}
+echo "connection = mysql://glance:${GLANCE_DBPASS}@controller/glance" >> ${CONFIG_FILE}
+echo "[keystone_authtoken]" >> ${CONFIG_FILE}
+echo "auth_uri = http://controller:5000/v2.0" >> ${CONFIG_FILE}
+echo "identity_uri = http://controller:35357" >> ${CONFIG_FILE}
+echo "admin_tenant_name = service" >> ${CONFIG_FILE}
+echo "admin_user = glance" >> ${CONFIG_FILE}
+echo "admin_password = ${GLANCE_PASS}" >> ${CONFIG_FILE}
+echo "[paste_deploy]" >> ${CONFIG_FILE}
+echo "flavor = keystone" >> ${CONFIG_FILE}
+echo "[glance_store]" >> ${CONFIG_FILE}
+echo "default_store = file" >> ${CONFIG_FILE}
+echo "filesystem_store_datadir = /var/lib/glance/images/" >> ${CONFIG_FILE}
 
-echo "[DEFAULT]" > /etc/glance/glance-registry.conf
-echo "notification_driver = noop" >> /etc/glance/glance-registry.conf
-echo "[database]" >> /etc/glance/glance-registry.conf
-echo "connection = mysql://glance:${GLANCE_DBPASS}@controller/glance" >> /etc/glance/glance-registry.conf
-echo "[keystone_authtoken]" >> /etc/glance/glance-registry.conf
-echo "auth_uri = http://controller:5000/v2.0" >> /etc/glance/glance-registry.conf
-echo "identity_uri = http://controller:35357" >> /etc/glance/glance-registry.conf
-echo "admin_tenant_name = service" >> /etc/glance/glance-registry.conf
-echo "admin_user = glance" >> /etc/glance/glance-registry.conf
-echo "admin_password = ${GLANCE_PASS}" >> /etc/glance/glance-registry.conf
-echo "[paste_deploy]" >> /etc/glance/glance-registry.conf
-echo "flavor = keystone" >> /etc/glance/glance-registry.conf
+CONFIG_FILE=/etc/glance/glance-registry.conf
+mv ${CONFIG_FILE} ${CONFIG_FILE}.original
+echo "[DEFAULT]" > ${CONFIG_FILE}
+echo "bind_host=0.0.0.0" >> ${CONFIG_FILE}
+echo "bind_port=9191" >> ${CONFIG_FILE}
+echo "rpc_backend = rabbit" >> ${CONFIG_FILE}
+echo "rabbit_userid=${RABBIT_USER}" >> ${CONFIG_FILE}
+echo "rabbit_password=${RABBIT_PASS}" >> ${CONFIG_FILE}
+echo "notification_driver = noop" >> ${CONFIG_FILE}
+echo "[database]" >> ${CONFIG_FILE}
+echo "connection = mysql://glance:${GLANCE_DBPASS}@controller/glance" >> ${CONFIG_FILE}
+echo "[keystone_authtoken]" >> ${CONFIG_FILE}
+echo "auth_uri = http://controller:5000/v2.0" >> ${CONFIG_FILE}
+echo "identity_uri = http://controller:35357" >> ${CONFIG_FILE}
+echo "admin_tenant_name = service" >> ${CONFIG_FILE}
+echo "admin_user = glance" >> ${CONFIG_FILE}
+echo "admin_password = ${GLANCE_PASS}" >> ${CONFIG_FILE}
+echo "[paste_deploy]" >> ${CONFIG_FILE}
+echo "flavor = keystone" >> ${CONFIG_FILE}
 
 su -s /bin/sh -c "glance-manage db_sync" glance
 
@@ -168,44 +190,58 @@ openstack-nova-console openstack-nova-novncproxy openstack-nova-scheduler \
 python-novaclient
 
 # update configuration
-mv /etc/nova/nova.conf /etc/nova/nova.conf.original
-echo "[DEFAULT]" > /etc/nova/nova.conf
-echo "rpc_backend = rabbit" >> /etc/nova/nova.conf
-echo "rabbit_host = controller" >> /etc/nova/nova.conf
-echo "rabbit_password = ${RABBIT_PASS}" >> /etc/nova/nova.conf
-echo "auth_strategy = keystone" >> /etc/nova/nova.conf
-echo "my_ip = ${MANAGEMENT_IP}" >> /etc/nova/nova.conf
-echo "vnc_enabled = True" >> /etc/nova/nova.conf
-echo "vncserver_listen = 0.0.0.0" >> /etc/nova/nova.conf
-echo "vncserver_proxyclient_address = ${MANAGEMENT_IP}" >> /etc/nova/nova.conf
-echo "novncproxy_base_url = http://controller:6080/vnc_auto.html" >> /etc/nova/nova.conf
+CONFIG_FILE="/etc/nova/nova.conf"
+mv ${CONFIG_FILE} ${CONFIG_FILE}.controller.original
+echo "[DEFAULT]" > ${CONFIG_FILE}
+echo "auth_strategy = keystone" >> ${CONFIG_FILE}
+echo "my_ip = ${MANAGEMENT_IP}" >> ${CONFIG_FILE}
+echo "vnc_enabled = True" >> ${CONFIG_FILE}
+echo "vncserver_listen = 0.0.0.0" >> ${CONFIG_FILE}
+echo "vncserver_proxyclient_address = ${MANAGEMENT_IP}" >> ${CONFIG_FILE}
+echo "novncproxy_base_url = http://controller:6080/vnc_auto.html" >> ${CONFIG_FILE}
+echo "ec2_listen=0.0.0.0" >> ${CONFIG_FILE}
+echo "ec2_listen_port=8773" >> ${CONFIG_FILE}
+echo "osapi_compute_listen=0.0.0.0"  >> ${CONFIG_FILE}
+echo "osapi_compute_listen_port=8774" >> ${CONFIG_FILE}
+echo "metadata_listen=0.0.0.0" >> ${CONFIG_FILE}
+echo "metadata_listen_port=2775" >> ${CONFIG_FILE}
+echo "rpc_backend = rabbit" >> ${CONFIG_FILE}
+echo "rabbit_port=5672" >> ${CONFIG_FILE}
+echo "rabbit_host = controller" >> ${CONFIG_FILE}
+echo "rabbit_userid=${RABBIT_USER}" >> ${CONFIG_FILE}
+echo "rabbit_password = ${RABBIT_PASS}" >> ${CONFIG_FILE}
 # required for legacy-networking on controller
-echo "network_api_class = nova.network.api.API" >> /etc/nova/nova.conf
-echo "security_group_api = nova" >> /etc/nova/nova.conf
+echo "network_api_class = nova.network.api.API" >> ${CONFIG_FILE}
+echo "security_group_api = nova" >> ${CONFIG_FILE}
 # required for legacy-networking on compute node ( on top of the legacy-networking on controller )
-echo "firewall_driver = nova.virt.libvirt.firewall.IptablesFirewallDriver" >> /etc/nova/nova.conf
-echo "network_manager = nova.network.manager.FlatDHCPManager" >> /etc/nova/nova.conf
-echo "network_size = 254" >> /etc/nova/nova.conf
-echo "allow_same_net_traffic = False" >> /etc/nova/nova.conf
-echo "multi_host = True" >> /etc/nova/nova.conf
-echo "send_arp_for_ha = True" >> /etc/nova/nova.conf
-echo "share_dhcp_address = True" >> /etc/nova/nova.conf
-echo "force_dhcp_release = True" >> /etc/nova/nova.conf
-echo "flat_network_bridge = br100" >> /etc/nova/nova.conf
-echo "flat_interface = ${EXTERNAL_INTERFACE_NAME}" >> /etc/nova/nova.conf
-echo "public_interface = ${EXTERNAL_INTERFACE_NAME}" >> /etc/nova/nova.conf
-echo "[database]" >> /etc/nova/nova.conf
-echo "connection = mysql://nova:${NOVA_DBPASS}@controller/nova" >> /etc/nova/nova.conf
-echo "[keystone_authtoken]" >> /etc/nova/nova.conf
-echo "auth_uri = http://controller:5000/v2.0" >> /etc/nova/nova.conf
-echo "identity_uri = http://controller:35357" >> /etc/nova/nova.conf
-echo "admin_tenant_name = service" >> /etc/nova/nova.conf
-echo "admin_user = nova" >> /etc/nova/nova.conf
-echo "admin_password = ${NOVA_PASS}" >> /etc/nova/nova.conf
-echo "[glance]" >> /etc/nova/nova.conf
-echo "host = controller" >> /etc/nova/nova.conf
-echo "[libvirt]" >> /etc/nova/nova.conf
-echo "virt_type = qemu" >> /etc/nova/nova.conf
+echo "firewall_driver = nova.virt.firewall.NoopFirewallDriver" >> ${CONFIG_FILE}
+echo "network_manager = nova.network.manager.FlatDHCPManager" >> ${CONFIG_FILE}
+echo "network_size = 254" >> ${CONFIG_FILE}
+echo "allow_same_net_traffic = False" >> ${CONFIG_FILE}
+echo "multi_host = True" >> ${CONFIG_FILE}
+echo "send_arp_for_ha = True" >> ${CONFIG_FILE}
+echo "share_dhcp_address = True" >> ${CONFIG_FILE}
+echo "force_dhcp_release = True" >> ${CONFIG_FILE}
+echo "flat_network_bridge = br100" >> ${CONFIG_FILE}
+echo "flat_interface = ${EXTERNAL_INTERFACE_NAME}" >> ${CONFIG_FILE}
+echo "public_interface = ${EXTERNAL_INTERFACE_NAME}" >> ${CONFIG_FILE}
+echo "metadata_host=127.0.0.1" >> ${CONFIG_FILE} # nova-network fails to start when using 'controller'
+echo "metadata_port=2775" >> ${CONFIG_FILE} # changed from default 8775 avoiding conflict with nova api port
+echo "[database]" >> ${CONFIG_FILE}
+echo "connection = mysql://nova:${NOVA_DBPASS}@controller/nova" >> ${CONFIG_FILE}
+echo "[keystone_authtoken]" >> ${CONFIG_FILE}
+echo "auth_uri = http://controller:5000/v2.0" >> ${CONFIG_FILE}
+echo "identity_uri = http://controller:35357" >> ${CONFIG_FILE}
+echo "admin_tenant_name = service" >> ${CONFIG_FILE}
+echo "admin_user = nova" >> ${CONFIG_FILE}
+echo "admin_password = ${NOVA_PASS}" >> ${CONFIG_FILE}
+echo "auth_host=127.0.0.1" >> ${CONFIG_FILE}
+echo "auth_port = 35357" >> ${CONFIG_FILE}
+echo "[glance]" >> ${CONFIG_FILE}
+echo "host = controller" >> ${CONFIG_FILE}
+echo "port=9292" >> ${CONFIG_FILE}
+echo "[libvirt]" >> ${CONFIG_FILE}
+echo "virt_type = qemu" >> ${CONFIG_FILE}
 
 su -s /bin/sh -c "nova-manage db sync" nova
 
@@ -230,22 +266,17 @@ nova service-list
 # ==============================================================================
 
 yum install -y openstack-nova-network
-yum install -y openstack-nova-api
 
 systemctl enable openstack-nova-network.service
 systemctl start openstack-nova-network.service
-# the following conflicts on 8775 with nova-api
+# disabling due to conflicts still being reported even after port change
 # systemctl enable openstack-nova-metadata-api.service
 # systemctl start openstack-nova-metadata-api.service
-
-# vi /var/log/nova/nova-api-metadata.log
-# SEE: http://egonzalez.org/openstack-nova-api-start-error-could-not-bind-to-0-0-0-0-address-already-in-use/
 
 nova network-create ${NETWORK_NAME} --bridge ${NETWORK_BRIDGE_ID} --multi-host T --fixed-range-v4 ${NETWORK_FIXED_RANGE_CIDR}
 
 # verify
 nova net-list
-
 
 # ==============================================================================
 # Openstach Dashboard

@@ -77,6 +77,11 @@ yum install -y openstack-selinux
 yum install -y ntp
 systemctl enable ntpd.service
 systemctl start ntpd.service
+# iptables
+yum install -y iptables
+yum install -y iptables-services
+# systemctl enable iptables.service
+# systemctl start iptables.service
 # used for mysql modal prompt automation
 yum install -y expect
 
